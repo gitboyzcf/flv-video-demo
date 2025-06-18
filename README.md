@@ -2,8 +2,11 @@
 
 基于mpegts.js、RecordRTC、native-file-system-adapter实现播放flv实时流并支持录像、截屏等功能的demo
 
-<video src="./videos/demo.mp4" controls="controls">
-</video>
+
+<video width="320" height="240" controls> 
+  <source src="./videos/demo.mp4" type="video/mp4"> 
+</video> 
+
 
 ## 详细信息
 
