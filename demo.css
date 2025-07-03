@@ -22,7 +22,7 @@
   display: flex;
   gap: 8px;
 }
-.video-container > div > div.recording::before {
+.video-container > div > div > div.recording::before {
   content: " ";
   display: block;
   width: 15px;
@@ -49,8 +49,15 @@
   flex: 1;
   position: relative;
 }
+.video-container div div div {
+  flex: 1;
+  position: relative;
+  border: 1px solid #cccccc;
+  overflow: hidden;
+}
 .video-container button {
   cursor: pointer;
+  margin-top: 8px;
 }
 
 @media screen and (max-width: 768px) {
@@ -60,10 +67,10 @@
 }
 
 .video-container video {
-  width: 100%;
-  height: 100%;
   flex: 1;
-  border: 1px solid #cccccc;
+  cursor: move;
+  transform-origin: top left;
+  max-width: none;
 }
 
 .urlInput {
@@ -86,10 +93,7 @@
 
 .controls {
   display: block;
-  width: 100%;
-  text-align: left;
-  margin-top: 50px;
-  margin-bottom: 10px;
+  max-width: 20%;
 }
 
 .logcatBox {

@@ -2,19 +2,18 @@
 <html>
 
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
     <title>mpegts.js demo</title>
     <link rel="stylesheet" type="text/css" href="demo.css" />
 </head>
 
 <body>
-
     <div class="mainContainer">
         <div>
             <div id="streamURL">
                 <div class="url-input">
                     <label for="sURL">Stream URL:</label>
-                    <input id="sURL" type="text" value="http://192.168.211.81:8086/live/test.live.flv" />
+                    <input id="sURL" type="text" value="https://192.168.211.81:1443/live/test.live.flv" />
                 </div>
                 <div class="options">
                     <input type="checkbox" id="isLive" onchange="saveSettings()" checked />
@@ -29,37 +28,48 @@
         <div class="video-container">
             <div>
                 <div>
-                    <video name="videoElement0" class="centeredVideo" muted autoplay playsinline>
-                        Your browser is too old which doesn't support HTML5 video.
-                    </video>
+                    <div>
+                        <video name="videoElement0" class="centeredVideo" muted autoplay playsinline>
+                            Your browser is too old which doesn't support
+                            HTML5 video.
+                        </video>
+                    </div>
                     <button onclick="player_start(0)">播放</button>
                     <button onclick="player_pause(0)">暂停</button>
                     <button onclick="screenshotClick(0)">截图</button>
-                    <button class="btn-start-recording" onclick="recordingClick(0, 0)">开始录制</button>
-                    <button class="btn-stop-recording" disabled onclick="recordingClick(0, 1)">结束录制</button>
+                    <button class="btn-start-recording" onclick="recordingClick(0, 0)">
+                        开始录制
+                    </button>
+                    <button class="btn-stop-recording" disabled onclick="recordingClick(0, 1)">
+                        结束录制
+                    </button>
                     <button onclick="player_load(0)">重新加载</button>
                     <button onclick="player_destroy(0)">销毁</button>
                 </div>
                 <div>
-                    <video name="videoElement1" class="centeredVideo" muted autoplay playsinline>
-                        Your browser is too old which doesn't support HTML5 video.
-                    </video>
+                    <div>
+                        <video name="videoElement1" class="centeredVideo" muted autoplay playsinline>
+                            Your browser is too old which doesn't support
+                            HTML5 video.
+                        </video>
+                    </div>
                     <button onclick="player_start(1)">播放</button>
                     <button onclick="player_pause(1)">暂停</button>
                     <button onclick="screenshotClick(1)">截图</button>
-                    <button class="btn-start-recording" onclick="recordingClick(1, 0)">开始录制</button>
-                    <button class="btn-stop-recording" disabled onclick="recordingClick(1, 1)">结束录制</button>
+                    <button class="btn-start-recording" onclick="recordingClick(1, 0)">
+                        开始录制
+                    </button>
+                    <button class="btn-stop-recording" disabled onclick="recordingClick(1, 1)">
+                        结束录制
+                    </button>
                     <button onclick="player_load(1)">重新加载</button>
                     <button onclick="player_destroy(1)">销毁</button>
                 </div>
-
+                <div class="controls">
+                    <textarea name="logcatbox" class="logcatBox" rows="50" readonly></textarea>
+                </div>
             </div>
         </div>
-        <div class="controls">
-            <!-- <input style="width:100px" type="text" name="seekpoint" /> -->
-            <!-- <button onclick="player_seekto()">SeekTo</button> -->
-        </div>
-        <textarea name="logcatbox" class="logcatBox" rows="10" readonly></textarea>
     </div>
 
     <!-- https://github.com/xqq/mpegts.js -->
@@ -67,22 +77,28 @@
     <!-- https://github.com/muaz-khan/RecordRTC -->
     <script src="./js/RecordRTC.js"></script>
     <script src="./js/screenshot.js"></script>
+    <script src="https://unpkg.com/mp4box@0.5.2/dist/mp4box.all.min.js"></script>
 
-    <script type="module">
+    <script type="module" defer>
         // https://github.com/jimmywarting/native-file-system-adapter
-        import { showSaveFilePicker } from 'https://unpkg.com/native-file-system-adapter@3.0.1/mod.js'
+        import { showSaveFilePicker } from "https://unpkg.com/native-file-system-adapter@3.0.1/mod.js";
         window.showSaveFilePicker = showSaveFilePicker;
     </script>
-    <script>
-
-        var checkBoxFields = ['isLive', 'withCredentials', 'liveBufferLatencyChasing'];
-        var streamURL, player, player2;
-        console.log(showSaveFilePicker)
+    <script src="./js/FlvStreamRecorder.js"></script>
+    <script defer>
+        var checkBoxFields = [
+            "isLive",
+            "withCredentials",
+            "liveBufferLatencyChasing",
+        ];
+        var streamURL, player, player2, resetSF;
+        console.log(window.showSaveFilePicker);
         function player_load(type) {
-            console.log('isSupported: ' + mpegts.isSupported());
+            console.log("isSupported: " + mpegts.isSupported());
             var i;
             var mediaDataSource = {
-                type: 'mse',
+                type: "flv",
+                isLive: true
             };
             for (i = 0; i < checkBoxFields.length; i++) {
                 var field = checkBoxFields[i];
@@ -90,40 +106,49 @@
                 var checkbox = document.getElementById(field);
                 mediaDataSource[field] = checkbox.checked;
             }
-            mediaDataSource['url'] = document.getElementById('sURL').value;
-            console.log('MediaDataSource', mediaDataSource);
+            mediaDataSource["url"] = document.getElementById("sURL").value;
+            console.log("MediaDataSource", mediaDataSource);
             player_load_mds(mediaDataSource, type);
         }
 
         function player_load_mds(mediaDataSource, type) {
-            var element = document.getElementsByName('videoElement' + type)[0];
+            var element = document.getElementsByName("videoElement" + type)[0];
             // https://github.com/xqq/mpegts.js/blob/master/docs/api.md#config
             const playerConfig = {
                 enableWorker: true, // 启用分离线程（DedicatedWorker）进行转换
                 enableWorkerForMSE: true, // 为MediaSource启用分隔线程（DedicatedWorker）
                 // 追踪由HTMLMediaElement中的内部缓冲区引起的实时流延迟。
-                liveBufferLatencyChasing: document.getElementById('liveBufferLatencyChasing').checked,
-            }
+                liveBufferLatencyChasing: document.getElementById(
+                    "liveBufferLatencyChasing"
+                ).checked,
+                lazyLoad: true,
+                lazyLoadMaxDuration: 3 * 60,
+                seekType: 'range'
+            };
 
             const e = (p) => {
                 console.log(mpegts.Events.LOADING_COMPLETE);
                 p.on(mpegts.Events.LOADING_COMPLETE, () => {
-                    console.log('LOADING_COMPLETE  加载完成');
-                })
+                    console.error("LOADING_COMPLETE  加载完成");
+                });
                 p.on(mpegts.Events.DESTROYING, () => {
-                    console.log('DESTROYING  销毁完成');
-                })
+                    console.error("DESTROYING  销毁完成");
+                });
 
                 p.on(mpegts.ErrorTypes.NETWORK_ERROR, (e) => {
-                    console.log('NETWORK_ERROR 网络错误', e);
-                })
+                    console.error("NETWORK_ERROR 网络错误", e);
+                });
                 p.on(mpegts.ErrorTypes.MEDIA_ERROR, (e) => {
-                    console.log('MEDIA_ERROR 媒体错误', e);
-                })
+                    console.error("MEDIA_ERROR 媒体错误", e);
+                });
                 p.on(mpegts.ErrorTypes.OTHER_ERROR, (e) => {
-                    console.log('OTHER_ERROR 其他错误', e);
-                })
-            }
+                    console.error("OTHER_ERROR 其他错误", e);
+                });
+                p.on(mpegts.Events.ERROR, (e) => {
+                    console.error("ERROR 播放器错误", e);
+                });
+
+            };
             if (!type) {
                 if (typeof player !== "undefined") {
                     if (player != null) {
@@ -150,9 +175,9 @@
                 player2.attachMediaElement(element);
                 player2.load();
                 e(player2);
-                console.log('player2', type);
+                console.log("player2", type);
             }
-
+            sfFn();
         }
 
         function player_start(i) {
@@ -177,23 +202,26 @@
                 player.destroy();
                 player = null;
             }
+            resetSF?.forEach((fn) => {
+                if (typeof fn === "function") {
+                    fn();
+                }
+            });
         }
 
         function player_seekto() {
-            var input = document.getElementsByName('seekpoint')[0];
+            var input = document.getElementsByName("seekpoint")[0];
             player.currentTime = parseFloat(input.value);
         }
 
         function switch_url() {
-            streamURL.className = '';
+            streamURL.className = "";
             saveSettings();
         }
 
-
-
         function ls_get(key, def) {
             try {
-                var ret = localStorage.getItem('mpegts_demo.' + key);
+                var ret = localStorage.getItem("mpegts_demo." + key);
                 if (ret === null) {
                     ret = def;
                 }
@@ -204,24 +232,24 @@
 
         function ls_set(key, value) {
             try {
-                localStorage.setItem('mpegts_demo.' + key, value);
+                localStorage.setItem("mpegts_demo." + key, value);
             } catch (e) { }
         }
 
         function saveSettings() {
-            ls_set('inputMode', 'StreamURL');
+            ls_set("inputMode", "StreamURL");
             var i;
             for (i = 0; i < checkBoxFields.length; i++) {
                 var field = checkBoxFields[i];
                 /** @type {HTMLInputElement} */
                 var checkbox = document.getElementById(field);
-                ls_set(field, checkbox.checked ? '1' : '0');
+                ls_set(field, checkbox.checked ? "1" : "0");
             }
             // var msURL = document.getElementById('msURL');
-            var sURL = document.getElementById('sURL');
+            var sURL = document.getElementById("sURL");
             // ls_set('msURL', msURL.value);
-            ls_set('sURL', sURL.value);
-            console.log('save');
+            ls_set("sURL", sURL.value);
+            console.log("save");
         }
 
         function loadSettings() {
@@ -230,15 +258,15 @@
                 var field = checkBoxFields[i];
                 /** @type {HTMLInputElement} */
                 var checkbox = document.getElementById(field);
-                var c = ls_get(field, checkbox.checked ? '1' : '0');
-                checkbox.checked = c === '1' ? true : false;
+                var c = ls_get(field, checkbox.checked ? "1" : "0");
+                checkbox.checked = c === "1" ? true : false;
             }
 
             // var msURL = document.getElementById('msURL');
-            var sURL = document.getElementById('sURL');
+            var sURL = document.getElementById("sURL");
             // msURL.value = ls_get('msURL', msURL.value);
-            sURL.value = ls_get('sURL', sURL.value);
-            if (ls_get('inputMode', 'StreamURL') === 'StreamURL') {
+            sURL.value = ls_get("sURL", sURL.value);
+            if (ls_get("inputMode", "StreamURL") === "StreamURL") {
                 switch_url();
             } else {
                 // switch_mds();
@@ -250,10 +278,10 @@
             document.title = document.title + " (v" + version + ")";
         }
 
-        var sURL = document.getElementById('sURL');
+        var sURL = document.getElementById("sURL");
         sURL.onkeyup = function (event) {
-            if (event.key === 'Enter' || event.keyCode === 13) {
-                saveSettings()
+            if (event.key === "Enter" || event.keyCode === 13) {
+                saveSettings();
                 if (player != null) {
                     player.unload();
                     player.detachMediaElement();
@@ -264,15 +292,14 @@
             }
         };
 
-        var logcatbox = document.getElementsByName('logcatbox')[0];
+        var logcatbox = document.getElementsByName("logcatbox")[0];
         mpegts.LoggingControl.addLogListener(function (type, str) {
-            logcatbox.value = logcatbox.value + str + '\n';
+            logcatbox.value = logcatbox.value + str + "\n";
             logcatbox.scrollTop = logcatbox.scrollHeight;
         });
 
-        document.addEventListener('DOMContentLoaded', function () {
-            streamURL = document.getElementById('streamURL');
-            loadSettings();
+        document.addEventListener("DOMContentLoaded", function () {
+            streamURL = document.getElementById("streamURL");
             showVersion();
             player_load(0);
             player_load(1);
@@ -280,33 +307,31 @@
 
         function formatDateTime(date) {
             function padZero(num) {
-                return num < 10 ? '0' + num : num
+                return num < 10 ? "0" + num : num;
             }
 
-            var year = date.getFullYear()
-            var month = padZero(date.getMonth() + 1)
-            var day = padZero(date.getDate())
-            var hours = padZero(date.getHours())
-            var minutes = padZero(date.getMinutes())
-            var seconds = padZero(date.getSeconds())
-            var Milliseconds = date.getMilliseconds()
+            var year = date.getFullYear();
+            var month = padZero(date.getMonth() + 1);
+            var day = padZero(date.getDate());
+            var hours = padZero(date.getHours());
+            var minutes = padZero(date.getMinutes());
+            var seconds = padZero(date.getSeconds());
+            var Milliseconds = date.getMilliseconds();
 
-            return `${year}${month}${day}${hours}${minutes}${seconds}${Milliseconds}`
+            return `${year}${month}${day}${hours}${minutes}${seconds}${Milliseconds}`;
         }
-
 
         // 下载资源
         async function DownloadStreamSaver(blob, fileName) {
             const opts = {
                 suggestedName: fileName,
-                types: [{ 'image/png': ['png'] }]
-            }
-            const handle = await showSaveFilePicker(opts)
-            const ws = await handle.createWritable()
-            ws.write(blob)
-            ws.close()
+                types: [{ "image/png": ["png"] }],
+            };
+            const handle = await window.showSaveFilePicker(opts);
+            const ws = await handle.createWritable();
+            ws.write(blob);
+            ws.close();
         }
-
 
         // 视频录制=====
         // 主摄像头
@@ -319,70 +344,232 @@
         //     });
         // }
 
-        function stopRecordingCallback() {
-            DownloadStreamSaver(
-                recorder.getBlob(),
-                `${formatDateTime(new Date())}.mp4`
-            )
-
-            recorder.destroy();
-            recorder = null;
+        function stopRecordingCallback(blob, type) {
+            DownloadStreamSaver(blob, `${formatDateTime(new Date())}.${type}`);
+            // recorder.destroy();
+            // recorder = null;
         }
 
-        function drawMedia(canvas, video) {
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-            // requestAnimationFrame 根据电脑显示帧数进行循环
-            animationFrame
-                = requestAnimationFrame(() => drawMedia(canvas, video));
-        }
-
-        var canvasDom = null, animationFrame = null;
+        var canvasDom = null,
+            animationFrame = null;
         // 截图
         function screenshotClick(i) {
-            const video = document.getElementsByName('videoElement' + i)[0];
-            const canvas = document.createElement('canvas');
+            const video = document.getElementsByName("videoElement" + i)[0];
+            const canvas = document.createElement("canvas");
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            canvas
+                .getContext("2d")
+                .drawImage(video, 0, 0, canvas.width, canvas.height);
             canvas.toBlob(async (blob) => {
                 if (blob) {
-                    await DownloadStreamSaver(blob, `${formatDateTime(new Date())}.png`);
+                    await DownloadStreamSaver(
+                        blob,
+                        `${formatDateTime(new Date())}.png`
+                    );
                 } else {
-                    console.error('截图失败');
+                    console.error("截图失败");
                 }
-            }, 'image/png');
+            }, "image/png");
         }
         // 录像
-        var recorder; // globally accessible
+        let recorders = {};
         function recordingClick(i, isLx) {
-            const video = document.getElementsByName('videoElement' + i)[0];
-            const startBtn = document.querySelectorAll('.btn-start-recording')[i];
-            const stopBtn = document.querySelectorAll('.btn-stop-recording')[i];
+            const videoElement = document.getElementsByName("videoElement" + i)[0];
+            const startBtn = document.querySelectorAll(".btn-start-recording")[i];
+            const stopBtn = document.querySelectorAll(".btn-stop-recording")[i];
             if (!isLx) {
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                video.parentElement.setAttribute('class', 'recording')
-                canvasDom = document.createElement('canvas');
-                canvasDom.width = video.videoWidth;
-                canvasDom.height = video.videoHeight;
-                recorder = RecordRTC(canvasDom, {
-                    type: 'canvas'
+                recorders[i] = new FlvStreamRecorder(videoElement, {
+                    streamName: 'streamName',
+                    fps: 30,
+                    scale: 1,
+                    containerFormat: 'mp4' // 优先使用MP4格式确保兼容性
                 });
-                recorder.startRecording();
-                drawMedia(canvasDom, video);
+                if (recorders[i].startRecording()) {
+                    startBtn.disabled = true;
+                    stopBtn.disabled = false;
+                    videoElement.parentElement.setAttribute("class", "recording");
+                    // 更新状态循环
+                    // const updateStatus = () => {
+                    //     if (recorder && recorder.isRecording) {
+                    //         const status = recorder.getStatus();
+                    //         document.getElementById(`${streamId}-fps`).textContent = status.fps;
+                    //         document.getElementById(`${streamId}-dropped`).textContent = status.droppedFrames;
+                    //         document.getElementById(`${streamId}-time`).textContent = status.duration.toFixed(1) + 's';
+                    //         setTimeout(updateStatus, 1000);
+                    //     }
+                    // };
+                    // updateStatus();
+                }
             } else {
-                stopBtn.disabled = true;
-                startBtn.disabled = false;
-                video.parentElement.removeAttribute('class')
-                recorder.stopRecording(() => stopRecordingCallback());
-                canvasDom = null
-                animationFrame = null
+                if (recorders[i] && recorders[i].stopRecording()) {
+                    stopBtn.disabled = true;
+                    startBtn.disabled = false;
+                    videoElement.parentElement.removeAttribute("class");
+                    // stopRecordingCallback(blob, type)
+                }
             }
         }
 
         // =====
-    </script>
 
+        // 滚轮缩放、放大逻辑
+        function enableImageManipulation(container, image, options = {}) {
+            // const container = document.querySelector(containerId);
+            // const image = document.querySelector(imageId);
+
+            let isDragging = false;
+            let startX,
+                startY,
+                initialX = 0,
+                initialY = 0,
+                scale = 1;
+            let currentX = 0,
+                currentY = 0,
+                targetX = 0,
+                targetY = 0;
+
+            // 配置选项: 最小和最大缩放比例，是否启用缩放和拖动功能
+            const minScale =
+                options.minScale || container.offsetWidth / image.offsetWidth;
+            const maxScale = options.maxScale || 3;
+            const dragSpeed = options.dragSpeed || 0.2;
+            const enableZoom = options.enableZoom !== false; // 默认启用缩放
+            const enableDrag = options.enableDrag !== false; // 默认启用拖动
+
+            // 处理缩放功能
+            if (enableZoom) {
+                container.addEventListener("wheel", function (event) {
+                    event.preventDefault();
+
+                    const { offsetX, offsetY } = event;
+                    const delta = Math.sign(event.deltaY) * -0.1;
+
+                    const newScale = Math.min(
+                        Math.max(scale + delta, minScale),
+                        maxScale
+                    );
+
+                    const dx = (offsetX - currentX) * (newScale / scale - 1);
+                    const dy = (offsetY - currentY) * (newScale / scale - 1);
+
+                    scale = newScale;
+                    currentX -= dx;
+                    currentY -= dy;
+
+                    updateImageTransform();
+                    adjustPosition();
+                });
+            }
+            // 处理拖动功能
+            if (enableDrag) {
+                image.addEventListener("mousedown", function (event) {
+                    isDragging = true;
+                    startX = event.clientX;
+                    startY = event.clientY;
+
+                    const transform =
+                        image.style.transform.match(/translate\(([^)]+)\)/);
+                    [initialX, initialY] = transform
+                        ? transform[1].split(",").map(parseFloat)
+                        : [0, 0];
+                });
+
+                document.addEventListener("mousemove", function (event) {
+                    if (isDragging) {
+                        const dx = (event.clientX - startX) * dragSpeed;
+                        const dy = (event.clientY - startY) * dragSpeed;
+
+                        targetX = initialX + dx;
+                        targetY = initialY + dy;
+                        updateDrag();
+                    }
+                });
+                function reset() {
+                    isDragging = false;
+                }
+                document.addEventListener("mouseleave", reset);
+                document.addEventListener("mouseup", reset);
+            }
+
+            // 更新拖动的图像位置
+            function updateDrag() {
+                if (!isDragging) return;
+
+                currentX = targetX;
+                currentY = targetY;
+
+                updateImageTransform();
+                adjustPosition();
+            }
+
+            // 更新图像的变换样式
+            function updateImageTransform() {
+                image.style.transform = `translate(${currentX}px, ${currentY}px) scale(${scale})`;
+            }
+
+            // 调整图像位置以限制在容器内
+            function adjustPosition() {
+                const rect = image.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                let newX = rect.left - containerRect.left;
+                let newY = rect.top - containerRect.top;
+
+                if (rect.width < containerRect.width) {
+                    newX = (containerRect.width - rect.width) / 2;
+                } else {
+                    if (newX > 0) newX = 0;
+                    if (newX + rect.width < containerRect.width)
+                        newX = containerRect.width - rect.width;
+                }
+
+                if (rect.height < containerRect.height) {
+                    newY = (containerRect.height - rect.height) / 2;
+                } else {
+                    if (newY > 0) newY = 0;
+                    if (newY + rect.height < containerRect.height)
+                        newY = containerRect.height - rect.height;
+                }
+
+                currentX = newX;
+                currentY = newY;
+
+                updateImageTransform();
+            }
+            return () => {
+                isDragging = false;
+                startX = 0;
+                startY = 0;
+                initialX = 0;
+                initialY = 0;
+                scale = 1;
+                currentX = 0;
+                currentY = 0;
+                targetX = 0;
+                targetY = 0;
+            };
+        }
+
+        function sfFn() {
+            const videos = document.querySelectorAll(".centeredVideo");
+            const temp = [];
+            if (videos.length) {
+                for (let j = 0; j < videos.length; j++) {
+                    temp.push(
+                        enableImageManipulation(videos[j].parentElement, videos[j], {
+                            enableZoom: true, // 启用缩放
+                            enableDrag: true, // 启用拖动
+                            minScale: 1, // 最小缩放比例
+                            maxScale: 6, // 最大缩放比例
+                            dragSpeed: 1.9, // 拖动速度
+                        })
+                    );
+                }
+                resetSF = temp;
+            }
+        }
+    </script>
 </body>
 
 </html>
